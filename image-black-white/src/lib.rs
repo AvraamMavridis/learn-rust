@@ -7,6 +7,14 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::Clamped;
 use web_sys::ImageData;
 
+#[derive(Debug)]
+struct Color {
+    red: u8,
+    green: u8,
+    black: u8,
+    alpha: u8,
+}
+
 fn average(numbers: &[i32]) -> f32 {
     numbers.iter().sum::<i32>() as f32 / numbers.len() as f32
 }
@@ -90,48 +98,71 @@ extern "C" {
     fn log_many(a: &str, b: &str);
 }
 
-#[wasm_bindgen]
-pub fn greet(img: &web_sys::HtmlImageElement){
+fn draw_image(img: &web_sys::HtmlImageElement, selector: &str, transform: &Fn(&Color) -> u8) {
     let _width = img.width();
     let _height = img.height();
-    let _canvas = get_canvas_from_selector(&String::from("#canvas"));
+    let _canvas = get_canvas_from_selector(&String::from(selector));
+    set_canvas_dimensions(&_canvas, _width, _height);
 
     let image_data: web_sys::ImageData = convert_image_element_to_image_data(&img).unwrap();
 
     let pixels = image_data.data();
     let mut new_image_data: Vec<u8> = Vec::new();
-    let mut i = 0;
-    let iterate_on_pixels = pixels.iter().step_by(4);
 
-    for pixel in iterate_on_pixels {
+    for (i, pixel) in pixels.iter().enumerate().step_by(4) {
         let p = *pixel as u32;
 
-        let r = pixels[i];
-        let g = pixels[i+1];
-        let b = pixels[i+2];
-        let a = pixels[i+3];
+        let red = pixels[i];
+        let green = pixels[i+1];
+        let black = pixels[i+2];
+        let alpha = pixels[i+3];
+        let color = Color {
+            red, green, black, alpha
+        };
 
-        let numbers = [r as i32,g as i32,b as i32,a as i32];
+        let avg = transform(&color);
 
-        let avg = average(&numbers[..]);
+        if i < 15 {
+            log(&format!("{:?}", avg));
+        }
 
-        i += 4;
-        new_image_data.push(avg as u8);
-        new_image_data.push(avg as u8);
-        new_image_data.push(avg as u8);
+        new_image_data.push(avg);
+        new_image_data.push(avg);
+        new_image_data.push(avg);
         new_image_data.push(255);
     }
 
-    let b = new_image_data.as_mut_slice();  
-
+    let clamped_image_data = Clamped(new_image_data.as_mut_slice());  
     let _context = get_canvas_context(&_canvas);
-    
-
-    _canvas.set_width(_width);
-    _canvas.set_height(_height);
-
-    let new_image_data = ImageData::new_with_u8_clamped_array_and_sh(Clamped(b), _width, _height).unwrap();
-
+    let new_image_data = ImageData::new_with_u8_clamped_array_and_sh(clamped_image_data, _width, _height).unwrap();
 
     _context.put_image_data(&new_image_data, 0.0, 0.0);
+}
+
+#[wasm_bindgen]
+pub fn grayscale_with_average(img: &web_sys::HtmlImageElement, selector: &str){
+    fn grayscale_avg(color: &Color) -> u8 {
+        let sum = (color.green as i32 + color.red as i32 + color.black as i32 + color.alpha as i32) as f32 / 4.0;
+        sum as u8
+    }
+
+    draw_image(img, selector, &grayscale_avg);
+}
+
+#[wasm_bindgen]
+pub fn grayscale_with_luminocity(img: &web_sys::HtmlImageElement, selector: &str){
+    fn grayscale_luminocity(color: &Color) -> u8 {
+        let red_factor = 0.21;
+        let green_factor = 0.72;
+        let black_factor = 0.07;
+
+        let green = (color.green as f32) * green_factor;
+        let red = (color.red as f32) * red_factor;
+        let black = (color.black as f32) * black_factor;
+
+        let sum = green + red + black;
+        sum as u8
+    }
+
+    draw_image(img, selector, &grayscale_luminocity);
 }

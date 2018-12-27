@@ -35,16 +35,54 @@ function addBorrowedObject(obj) {
     heap[--stack_pointer] = obj;
     return stack_pointer;
 }
+
+const lTextEncoder = typeof TextEncoder === 'undefined' ? require('util').TextEncoder : TextEncoder;
+
+let cachedTextEncoder = new lTextEncoder('utf-8');
+
+let WASM_VECTOR_LEN = 0;
+
+function passStringToWasm(arg) {
+
+    const buf = cachedTextEncoder.encode(arg);
+    const ptr = wasm.__wbindgen_malloc(buf.length);
+    getUint8Memory().set(buf, ptr);
+    WASM_VECTOR_LEN = buf.length;
+    return ptr;
+}
 /**
 * @param {any} arg0
+* @param {string} arg1
 * @returns {void}
 */
-export function greet(arg0) {
+export function grayscale_with_average(arg0, arg1) {
+    const ptr1 = passStringToWasm(arg1);
+    const len1 = WASM_VECTOR_LEN;
     try {
-        return wasm.greet(addBorrowedObject(arg0));
+        return wasm.grayscale_with_average(addBorrowedObject(arg0), ptr1, len1);
 
     } finally {
         heap[stack_pointer++] = undefined;
+        wasm.__wbindgen_free(ptr1, len1 * 1);
+
+    }
+
+}
+
+/**
+* @param {any} arg0
+* @param {string} arg1
+* @returns {void}
+*/
+export function grayscale_with_luminocity(arg0, arg1) {
+    const ptr1 = passStringToWasm(arg1);
+    const len1 = WASM_VECTOR_LEN;
+    try {
+        return wasm.grayscale_with_luminocity(addBorrowedObject(arg0), ptr1, len1);
+
+    } finally {
+        heap[stack_pointer++] = undefined;
+        wasm.__wbindgen_free(ptr1, len1 * 1);
 
     }
 
@@ -247,8 +285,6 @@ export function __widl_f_new_with_u8_clamped_array_and_sh_ImageData(arg0, arg1, 
     }
 }
 
-let WASM_VECTOR_LEN = 0;
-
 function passArray8ToWasm(arg) {
     const ptr = wasm.__wbindgen_malloc(arg.length * 1);
     getUint8Memory().set(arg, ptr / 1);
@@ -335,19 +371,6 @@ export function __wbindgen_boolean_get(i) {
 
 export function __wbindgen_is_symbol(i) {
     return typeof(getObject(i)) === 'symbol' ? 1 : 0;
-}
-
-const lTextEncoder = typeof TextEncoder === 'undefined' ? require('util').TextEncoder : TextEncoder;
-
-let cachedTextEncoder = new lTextEncoder('utf-8');
-
-function passStringToWasm(arg) {
-
-    const buf = cachedTextEncoder.encode(arg);
-    const ptr = wasm.__wbindgen_malloc(buf.length);
-    getUint8Memory().set(buf, ptr);
-    WASM_VECTOR_LEN = buf.length;
-    return ptr;
 }
 
 export function __wbindgen_string_get(i, len_ptr) {

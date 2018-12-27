@@ -9,7 +9,8 @@ fileUploader.addEventListener('change', (event) => {
 
   img.onload = function() {
     js.then(js => {
-      js.greet(img);
+      js.grayscale_with_luminocity(img, "#canvas");
+      js.grayscale_with_average(img, "#canvas2");
     });
   }
 
