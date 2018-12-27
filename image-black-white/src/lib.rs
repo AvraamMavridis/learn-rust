@@ -15,10 +15,6 @@ struct Color {
     alpha: u8,
 }
 
-fn average(numbers: &[i32]) -> f32 {
-    numbers.iter().sum::<i32>() as f32 / numbers.len() as f32
-}
-
 fn create_invisible_canvas() -> web_sys::HtmlCanvasElement {
     let document = window().unwrap().document().unwrap();
     let _invisible_canvas: web_sys::HtmlCanvasElement = document.create_element("canvas")
@@ -55,30 +51,6 @@ fn convert_image_element_to_image_data(img: &web_sys::HtmlImageElement) -> Resul
     _invisible_context.get_image_data(0.0, 0.0, _width.into(), _height.into())
 }
 
-fn get_canvas_from_selector(selector: &str) -> web_sys::HtmlCanvasElement {
-    let document = window().unwrap().document().unwrap();
-
-    let error_selector_not_found = String::from("Selector not found.");
-    let error_querying = String::from("Error querying canvas");
-
-    let _canvas = match document.query_selector(selector) {
-        Ok(Some(element)) => element,
-        Ok(None) => {
-            log(&error_selector_not_found);
-            panic!(error_selector_not_found);
-        },
-        Err(_) => {
-            log(&error_querying);
-            panic!(error_querying);
-        }
-    };
-
-    _canvas
-        .dyn_into::<web_sys::HtmlCanvasElement>()
-        .map_err(|_| ())
-        .unwrap()
-}
-
 
 #[wasm_bindgen]
 extern "C" {
@@ -98,11 +70,9 @@ extern "C" {
     fn log_many(a: &str, b: &str);
 }
 
-fn draw_image(img: &web_sys::HtmlImageElement, selector: &str, transform: &Fn(&Color) -> u8) {
+fn draw_image(img: &web_sys::HtmlImageElement, transform: &Fn(&Color) -> u8) -> String{
     let _width = img.width();
     let _height = img.height();
-    let _canvas = get_canvas_from_selector(&String::from(selector));
-    set_canvas_dimensions(&_canvas, _width, _height);
 
     let image_data: web_sys::ImageData = convert_image_element_to_image_data(&img).unwrap();
 
@@ -122,10 +92,6 @@ fn draw_image(img: &web_sys::HtmlImageElement, selector: &str, transform: &Fn(&C
 
         let avg = transform(&color);
 
-        if i < 15 {
-            log(&format!("{:?}", avg));
-        }
-
         new_image_data.push(avg);
         new_image_data.push(avg);
         new_image_data.push(avg);
@@ -133,24 +99,27 @@ fn draw_image(img: &web_sys::HtmlImageElement, selector: &str, transform: &Fn(&C
     }
 
     let clamped_image_data = Clamped(new_image_data.as_mut_slice());  
-    let _context = get_canvas_context(&_canvas);
     let new_image_data = ImageData::new_with_u8_clamped_array_and_sh(clamped_image_data, _width, _height).unwrap();
 
-    _context.put_image_data(&new_image_data, 0.0, 0.0);
+    let _invisible_canvas = create_invisible_canvas();
+    let _invisible_context = get_canvas_context(&_invisible_canvas);
+    _invisible_context.put_image_data(&new_image_data, 0.0, 0.0);
+
+    _invisible_canvas.to_data_url_with_type("image/png").unwrap()
 }
 
 #[wasm_bindgen]
-pub fn grayscale_with_average(img: &web_sys::HtmlImageElement, selector: &str){
+pub fn grayscale_with_average(img: &web_sys::HtmlImageElement) -> String {
     fn grayscale_avg(color: &Color) -> u8 {
         let sum = (color.green as i32 + color.red as i32 + color.black as i32 + color.alpha as i32) as f32 / 4.0;
         sum as u8
     }
 
-    draw_image(img, selector, &grayscale_avg);
+    draw_image(img, &grayscale_avg)
 }
 
 #[wasm_bindgen]
-pub fn grayscale_with_luminocity(img: &web_sys::HtmlImageElement, selector: &str){
+pub fn grayscale_with_luminocity(img: &web_sys::HtmlImageElement) -> String {
     fn grayscale_luminocity(color: &Color) -> u8 {
         let red_factor = 0.21;
         let green_factor = 0.72;
@@ -164,5 +133,5 @@ pub fn grayscale_with_luminocity(img: &web_sys::HtmlImageElement, selector: &str
         sum as u8
     }
 
-    draw_image(img, selector, &grayscale_luminocity);
+    draw_image(img, &grayscale_luminocity)
 }

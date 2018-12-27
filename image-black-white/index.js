@@ -8,9 +8,9 @@ fileUploader.addEventListener('change', (event) => {
   var img = new Image;
 
   img.onload = function() {
-    js.then(js => {
-      js.grayscale_with_luminocity(img, "#canvas");
-      js.grayscale_with_average(img, "#canvas2");
+    js.then(wasm => {
+      wasm.grayscale_with_luminocity(img);
+      wasm.grayscale_with_average(img);
     });
   }
 
