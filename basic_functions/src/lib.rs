@@ -64,4 +64,16 @@ mod tests {
         let b = vec![1, 2];
         assert!(dedup(&a) == b);
     }
+
+
+    #[test]
+    fn it_works_filter() {
+        let greater_than_2 = |x: i32| -> bool {
+            x > 2
+        };
+
+        let a = vec![1, 2, 5, 6, 7];
+        let b = vec![5, 6, 7];
+        assert!(filter(&a, &greater_than_2) == b);
+    }
 }
